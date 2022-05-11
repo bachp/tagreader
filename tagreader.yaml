@@ -31,7 +31,7 @@ esphome:
   # This will allow for (future) project identification,
   # configuration and updates.
   project:
-    name: adonno.tag_reader
+    name: bachp.tag_reader
     version: "1.4"
 # If buzzer is enabled, notify on api connection success
   on_boot:
@@ -67,8 +67,8 @@ switch:
   optimistic: true
   restore_state: true
   entity_category: config
-  
-# Define buttons for writing tags via HA 
+
+# Define buttons for writing tags via HA
 button:
   - platform: template
     name: Write Tag Random
@@ -82,7 +82,7 @@ button:
           brightness: 100%
           red: 100%
           green: 0%
-          blue: 100%    
+          blue: 100%
       - lambda: |-
           static const char alphanum[] = "0123456789abcdef";
           std::string uri = "https://www.home-assistant.io/tag/";
@@ -118,7 +118,7 @@ button:
           brightness: 100%
           red: 100%
           green: 64.7%
-          blue: 0%    
+          blue: 0%
       - lambda: 'id(pn532_board).clean_mode();'
       - rtttl.play: "write:d=24,o=5,b=100:b"
       - wait_until:
@@ -128,7 +128,7 @@ button:
           id: activity_led
       - rtttl.play: "write:d=24,o=5,b=100:b,b"
   - platform: template
-    name: Cancel writing 
+    name: Cancel writing
     id: cancel_writing
     icon: "mdi:pencil-off"
     on_press:
@@ -172,7 +172,7 @@ api:
         brightness: 100%
         red: 100%
         green: 0%
-        blue: 0%    
+        blue: 0%
     - lambda: |-
         auto message = new nfc::NdefMessage();
         std::string uri = "https://www.home-assistant.io/tag/";
@@ -197,7 +197,7 @@ api:
         brightness: 100%
         red: 100%
         green: 0%
-        blue: 0%    
+        blue: 0%
     - lambda: |-
         auto message = new nfc::NdefMessage();
         std::string uri = "";
@@ -249,9 +249,9 @@ pn532_i2c:
             green: 100%
             blue: 0%
             flash_length: 500ms
-    
+
     - delay: 0.15s #to fix slow component
-        
+
     - lambda: |-
         id(source)="";
         id(url)="";
@@ -300,7 +300,7 @@ pn532_i2c:
         else {
           id(source)="uid";
         }
-    
+
     - if:
         condition:
           lambda: 'return ( id(source)=="uid" );'
@@ -326,13 +326,39 @@ pn532_i2c:
                     return id(url);
                   info: !lambda |-
                     return id(info);
-    
+
     - if:
         condition:
           switch.is_on: buzzer_enabled
         then:
         - rtttl.play: "success:d=24,o=5,b=100:c,g,b"
-    
+
+  on_tag_removed:
+    then:
+    - if:
+        condition:
+          switch.is_on: led_enabled
+        then:
+        - light.turn_on:
+            id: activity_led
+            brightness: 100%
+            red: 0%
+            green: 100%
+            blue: 0%
+            flash_length: 500ms
+
+    - delay: 0.15s #to fix slow component
+
+    - homeassistant.tag_scanned: !lambda |-
+        ESP_LOGD("tagreader", "Tag removed");
+        return "000000";
+
+    - if:
+        condition:
+          switch.is_on: buzzer_enabled
+        then:
+        - rtttl.play: "success:d=24,o=5,b=100:c,g,b"
+
 # Define the buzzer output
 output:
 - platform: esp8266_pwm
